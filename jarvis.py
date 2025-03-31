@@ -1,5 +1,7 @@
 import pyttsx3
 from decouple import config
+import tempfile
+import os
 
 USERNAME = config('USER')
 BOTNAME = config('BOTNAME')
@@ -76,3 +78,50 @@ def take_user_input():
                 speak("Lo siento , puede repetirlo?")
                 query = 'None'
     return query
+
+def save_temp_file(data, prefix="jarvis_", suffix=".tmp"):
+    """
+    Guarda datos en un archivo temporal y retorna la ruta del archivo.
+    
+    Args:
+        data: Datos a guardar en el archivo
+        prefix: Prefijo del nombre del archivo temporal
+        suffix: Extensión del archivo temporal
+    
+    Returns:
+        str: Ruta del archivo temporal creado
+    """
+    try:
+        # Crear archivo temporal
+        temp_file = tempfile.NamedTemporaryFile(
+            prefix=prefix,
+            suffix=suffix,
+            delete=False,
+            mode='w'
+        )
+        
+        # Escribir datos
+        temp_file.write(str(data))
+        temp_file.close()
+        
+        speak(f"Archivo temporal creado en {temp_file.name}")
+        return temp_file.name
+        
+    except Exception as e:
+        speak("Error al crear archivo temporal")
+        print(f"Error: {str(e)}")
+        return None
+
+def delete_temp_file(filepath):
+    """
+    Elimina un archivo temporal.
+    
+    Args:
+        filepath: Ruta del archivo a eliminar
+    """
+    try:
+        os.remove(filepath)
+        speak("Archivo temporal eliminado")
+    except Exception as e:
+        speak("Error al eliminar archivo temporal") 
+        print(f"Error: {str(e)}")
