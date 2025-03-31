@@ -4,7 +4,7 @@ from decouple import config
 USERNAME = config('USER')
 BOTNAME = config('BOTNAME')
 
-# modulo pyttsx3 con sapi5 (API) de vos de microsoft
+# modulo pyttsx3 con sapi5 (API) de voz de microsoft
 engine = pyttsx3.init('sapi5')
 
 # setProperty es un metodo para el motor de voz
