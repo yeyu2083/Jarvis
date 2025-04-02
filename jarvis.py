@@ -1,138 +1,115 @@
-import pyttsx3
-from decouple import config
-import tempfile
-import os
+import datetime
 import platform
+import os
 
-USERNAME = config('USER')
-BOTNAME = config('BOTNAME')
+# Intentar importar las dependencias de audio, pero no fallar si no están disponibles
+AUDIO_ENABLED = False
+try:
+    import speech_recognition as sr
+    import pyttsx3
+    AUDIO_ENABLED = True
+except ImportError:
+    print("Módulos de audio no disponibles. Funcionando en modo texto.")
 
-# Initialize text-to-speech engine based on platform
-def init_engine():
-    """Inicializa el motor de voz según la plataforma del sistema"""
-    if platform.system() == 'Windows':
-        engine = pyttsx3.init('sapi5')
-    elif platform.system() == 'Darwin':  # macOS
-        engine = pyttsx3.init('nsss')
-    else:  # Linux
-        engine = pyttsx3.init('espeak')
-    return engine
+# Configuración
+from decouple import config
+USERNAME = config('USER', default='Yeyu')
+BOTNAME = config('BOTNAME', default='Jarvis')
 
-engine = init_engine()
-
-# setProperty es un metodo para el motor de voz
-
-# Set Rate
-engine.setProperty('rate', 190)
-# Set Volumen
-engine.setProperty('volume', 1.0)
-
-# Set Voice (Female)
-voices = engine.getProperty('voices')
-engine.setProperty('voice', voices[1].id)
-
-#Conversion de Texto a voz
+# Inicializar sistema de voz si está disponible
+engine = None
+if AUDIO_ENABLED:
+    try:
+        if platform.system() == 'Windows':
+            engine = pyttsx3.init('sapi5')
+        elif platform.system() == 'Darwin':  # macOS
+            engine = pyttsx3.init('nsss')
+        else:  # Linux
+            engine = pyttsx3.init('espeak')
+        
+        # Configurar velocidad y voz
+        engine.setProperty('rate', 190)
+        voices = engine.getProperty('voices')
+        engine.setProperty('voice', voices[0].id)
+    except Exception as e:
+        print(f"Error al inicializar el motor de voz: {e}")
+        AUDIO_ENABLED = False
 
 def speak(text):
-    """Usado para decir cualquier texto que le sea entregado, utilizan la biblioteca pyttsx3 y los metodos say() para el texto y runandwait() para ejecutar el texto a voz"""
-    
-    engine.say(text)
-    engine.runAndWait()
-
-    # funcion para dar la bienvenida en tiempo real
-
-from datetime import datetime
+    """
+    Función para que el asistente hable o muestre texto
+    """
+    if AUDIO_ENABLED and engine:
+        try:
+            engine.say(text)
+            engine.runAndWait()
+        except Exception as e:
+            print(f"Error al hablar: {e}")
+            print(f"{BOTNAME}: {text}")
+    else:
+        print(f"{BOTNAME}: {text}")
 
 def greet_user():
-    """Saluda al usuario de acuerdo al horario"""
-
-    hour = datetime.now().hour
-    if (hour >= 6) and (hour < 12):
-        speak(f"Buenos Dias {USERNAME}")
-    elif (hour >= 12) and (hour <  16):
-        speak(f"Buenas tardes {USERNAME}")
-    elif (hour >= 16) and (hour < 19):
+    """
+    Función para saludar al usuario según la hora del día
+    """
+    hour = datetime.datetime.now().hour
+    
+    if 6 <= hour < 12:
+        speak(f"Buenos Días {USERNAME}")
+    elif 12 <= hour < 18:
+        speak(f"Buenas Tardes {USERNAME}")
+    else:
         speak(f"Buenas Noches {USERNAME}")
+    
     speak(f"Yo soy {BOTNAME}. ¿Cómo puedo ayudarle?")
 
-#configuramos la informaciòn del usuario
-
-"""Modulo speech_recognition como sr, recognizer es una clase para reconocer el audio, y microphone para el microfono, con source y escuchamos el audio con listen()"""
-
-import speech_recognition as sr
-from random import choice
-from utils import opening_text
-
 def take_user_input():
-    """Toma las entradas del usuario, las reconoce por el mòdulo de voz, pause_threshold es la pausa para q no compile mientras hablamos, recognize ejecuta el reconocimiento de la voz usando la api de google"""
+    """
+    Función para tomar entrada del usuario, ya sea por voz o texto
+    """
+    if AUDIO_ENABLED:
+        try:
+            recognizer = sr.Recognizer()
+            with sr.Microphone() as source:
+                print("Escuchando...")
+                recognizer.pause_threshold = 1
+                audio = recognizer.listen(source)
+            
+            try:
+                print("Reconociendo...")
+                query = recognizer.recognize_google(audio, language='es-ES')
+                print(f"Usuario: {query}")
+                return query
+            except Exception as e:
+                print(f"Error en reconocimiento: {e}")
+                return "None"
+        except Exception as e:
+            print(f"Error al acceder al micrófono: {e}")
+            # Caer al modo texto si hay un error con el audio
+            return input("Escriba su comando: ")
+    else:
+        # Modo texto cuando el audio no está disponible
+        return input(f"{USERNAME}: ")
 
-    r = sr.Recognizer()
-    with sr.Microphone() as source:
-        print('Escuchando...')
-        r.pause_threshold = 1
-        audio = r.listen(source)
-
-    try:
-        print('Reconociendo...')
-        query = r.recognize_google(audio, language='es-ES')
-        if not 'Salir' in query or 'Alto' in query:
-            speak(choice(opening_text))
+# Ejemplo de ejecución
+if __name__ == "__main__":
+    greet_user()
+    
+    while True:
+        query = take_user_input()
+        if query.lower() == 'salir' or query.lower() == 'exit':
+            speak("Hasta luego")
+            break
+        
+        # Procesar la consulta del usuario
+        if 'hola' in query.lower():
+            speak("Hola, ¿en qué puedo ayudarte?")
+        elif 'hora' in query.lower():
+            current_time = datetime.datetime.now().strftime("%H:%M")
+            speak(f"La hora actual es {current_time}")
+        elif 'fecha' in query.lower():
+            date = datetime.datetime.now().strftime("%d/%m/%Y")
+            speak(f"La fecha de hoy es {date}")
         else:
-            hour = datetime.now().hour
-            if hour >= 21 and hour < 6:
-                speak("Buenas noches señor, !cuídese!")
-            else:
-                speak("Tenga un buen dia!")
-            exit()
-
-    except Exception:
-                speak("Lo siento , puede repetirlo?")
-                query = 'None'
-    return query
-
-def save_temp_file(data, prefix="jarvis_", suffix=".tmp"):
-    """
-    Guarda datos en un archivo temporal y retorna la ruta del archivo.
-    
-    Args:
-        data: Datos a guardar en el archivo
-        prefix: Prefijo del nombre del archivo temporal
-        suffix: Extensión del archivo temporal
-    
-    Returns:
-        str: Ruta del archivo temporal creado
-    """
-    try:
-        # Crear archivo temporal
-        temp_file = tempfile.NamedTemporaryFile(
-            prefix=prefix,
-            suffix=suffix,
-            delete=False,
-            mode='w'
-        )
-        
-        # Escribir datos
-        temp_file.write(str(data))
-        temp_file.close()
-        
-        speak(f"Archivo temporal creado en {temp_file.name}")
-        return temp_file.name
-        
-    except Exception as e:
-        speak("Error al crear archivo temporal")
-        print(f"Error: {str(e)}")
-        return None
-
-def delete_temp_file(filepath):
-    """
-    Elimina un archivo temporal.
-    
-    Args:
-        filepath: Ruta del archivo a eliminar
-    """
-    try:
-        os.remove(filepath)
-        speak("Archivo temporal eliminado")
-    except Exception as e:
-        speak("Error al eliminar archivo temporal") 
-        print(f"Error: {str(e)}")
+            speak("No entiendo ese comando. ¿Puedes repetirlo?")
