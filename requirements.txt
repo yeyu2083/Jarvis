@@ -8,4 +8,4 @@ pytest
 pytest-cov==4.1.0
 pylint==3.0.3
 coverage==7.4.1
-comtypes; platform_system=="Windows"
+comtypes; sys_platform == "win32"
