@@ -1,6 +1,9 @@
 import datetime
 import platform
 import os
+import tempfile
+import hashlib
+from pathlib import Path
 
 # Intentar importar las dependencias de audio, pero no fallar si no están disponibles
 AUDIO_ENABLED = False
@@ -92,6 +95,71 @@ def take_user_input():
         # Modo texto cuando el audio no está disponible
         return input(f"{USERNAME}: ")
 
+def save_temp_file(data, prefix="jarvis_", suffix=".tmp"):
+    """
+    Guarda datos en un archivo temporal y retorna la ruta del archivo.
+    
+    Args:
+        data: Datos a guardar en el archivo
+        prefix: Prefijo del nombre del archivo temporal
+        suffix: Extensión del archivo temporal
+    
+    Returns:
+        str: Ruta del archivo temporal creado
+    """
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix=prefix,
+            suffix=suffix,
+            delete=False,
+            mode='w',
+            encoding='utf-8'
+        ) as temp_file:
+            temp_file.write(str(data))
+            speak(f"Archivo temporal creado en {temp_file.name}")
+            return temp_file.name
+    except Exception as e:
+        speak(f"Error al crear archivo temporal: {str(e)}")
+        return None
+
+def detect_duplicate_content(directory="."):
+    """
+    Detecta contenido duplicado en archivos de texto.
+    
+    Args:
+        directory: Directorio a analizar
+    
+    Returns:
+        dict: Diccionario de archivos con contenido duplicado
+    """
+    hash_dict = {}
+    duplicates = {}
+    
+    try:
+        for file_path in Path(directory).rglob("*.txt"):
+            with open(file_path, 'rb') as f:
+                content = f.read()
+                file_hash = hashlib.md5(content).hexdigest()
+                
+                if file_hash in hash_dict:
+                    if file_hash not in duplicates:
+                        duplicates[file_hash] = [hash_dict[file_hash]]
+                    duplicates[file_hash].append(str(file_path))
+                else:
+                    hash_dict[file_hash] = str(file_path)
+        
+        if duplicates:
+            speak("Se encontraron archivos duplicados:")
+            for hash_value, files in duplicates.items():
+                speak(f"Archivos duplicados: {', '.join(files)}")
+        else:
+            speak("No se encontraron archivos duplicados")
+            
+        return duplicates
+    except Exception as e:
+        speak(f"Error al buscar duplicados: {str(e)}")
+        return {}
+
 # Ejemplo de ejecución
 if __name__ == "__main__":
     greet_user()
@@ -111,5 +179,16 @@ if __name__ == "__main__":
         elif 'fecha' in query.lower():
             date = datetime.datetime.now().strftime("%d/%m/%Y")
             speak(f"La fecha de hoy es {date}")
+        elif 'guardar nota' in query.lower():
+            speak("¿Qué contenido quieres guardar?")
+            content = take_user_input()
+            temp_file = save_temp_file(content, prefix="jarvis_nota_", suffix=".txt")
+            if temp_file:
+                speak(f"Nota guardada en {temp_file}")
+                
+        elif 'buscar duplicados' in query.lower():
+            speak("Buscando archivos duplicados...")
+            detect_duplicate_content()
+            
         else:
             speak("No entiendo ese comando. ¿Puedes repetirlo?")
