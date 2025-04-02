@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Importante para que SonarCloud vea todo el historial
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -34,10 +34,11 @@ jobs:
           pip install wheel setuptools
           pip install $(grep -v "PyAudio" requirements.txt)
           pip install pytest pytest-cov
+          pip install PyAudio
       
       - name: Run tests and generate coverage
         run: |
-          PYTHONPATH=$PYTHONPATH:$(pwd) pytest --cov=. --cov-report=xml
+          PYTHONPATH=$PYTHONPATH:$(pwd) pytest tests/ --cov=. --cov-report=xml
       
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
@@ -48,3 +49,6 @@ jobs:
           args: >
             -Dsonar.projectKey=yeyu2083_Jarvis
             -Dsonar.organization=yesiwin
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.sources=.
+            -Dsonar.python.version=3.12
