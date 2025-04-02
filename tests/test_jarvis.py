@@ -1,7 +1,9 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from datetime import datetime
-import speech_recognition as sr
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
 from jarvis import speak, greet_user, take_user_input, USERNAME, BOTNAME
 
 class TestJarvis(unittest.TestCase):
