@@ -22,7 +22,7 @@ class TestJarvis(unittest.TestCase):
         mock_engine.say.assert_called_once_with(test_text)
         # Verify runAndWait was called
         mock_engine.runAndWait.assert_called_once()
-
+    
     @patch('jarvis.speak')
     @patch('jarvis.datetime')
     def test_greet_user_morning(self, mock_datetime, mock_speak):
@@ -35,7 +35,7 @@ class TestJarvis(unittest.TestCase):
         # Verify correct greeting was spoken
         mock_speak.assert_any_call(f"Buenos Dias {USERNAME}")
         mock_speak.assert_any_call(f"Yo soy {BOTNAME}. ¿Cómo puedo ayudarle?")
-
+    
     @patch('speech_recognition.Recognizer')
     @patch('speech_recognition.Microphone')
     def test_take_user_input_normal(self, mock_microphone, mock_recognizer):
@@ -56,7 +56,7 @@ class TestJarvis(unittest.TestCase):
             language='es-ES'
         )
         self.assertEqual(result, "hola jarvis")
-
+    
     @patch('speech_recognition.Recognizer')
     @patch('speech_recognition.Microphone')
     def test_take_user_input_exception(self, mock_microphone, mock_recognizer):

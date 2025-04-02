@@ -2,12 +2,23 @@ import pyttsx3
 from decouple import config
 import tempfile
 import os
+import platform
 
 USERNAME = config('USER')
 BOTNAME = config('BOTNAME')
 
-# modulo pyttsx3 con sapi5 (API) de voz de microsoft
-engine = pyttsx3.init('sapi5')
+# Initialize text-to-speech engine based on platform
+def init_engine():
+    """Inicializa el motor de voz según la plataforma del sistema"""
+    if platform.system() == 'Windows':
+        engine = pyttsx3.init('sapi5')
+    elif platform.system() == 'Darwin':  # macOS
+        engine = pyttsx3.init('nsss')
+    else:  # Linux
+        engine = pyttsx3.init('espeak')
+    return engine
+
+engine = init_engine()
 
 # setProperty es un metodo para el motor de voz
 
