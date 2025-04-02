@@ -1,11 +1,17 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, mock_open
 import sys
 from pathlib import Path
+import tempfile
+import os
+
 sys.path.append(str(Path(__file__).parent.parent))
 
-# Importar después de ajustar el path
-from jarvis import speak, greet_user, take_user_input, USERNAME, BOTNAME
+from jarvis import (
+    speak, greet_user, take_user_input, 
+    save_temp_file, detect_duplicate_content,
+    USERNAME, BOTNAME
+)
 
 class TestJarvis(unittest.TestCase):
     
@@ -76,6 +82,76 @@ class TestJarvis(unittest.TestCase):
         
         # Verify result
         self.assertEqual(result, "hola jarvis")
+
+    @patch('tempfile.NamedTemporaryFile')
+    def test_save_temp_file(self, mock_temp):
+        # Setup mock temp file
+        mock_file = MagicMock()
+        mock_file.name = '/tmp/jarvis_test.txt'
+        mock_temp.return_value.__enter__.return_value = mock_file
+        
+        # Test saving content
+        result = save_temp_file("Test content")
+        
+        # Verify temp file was created and written to
+        self.assertEqual(result, '/tmp/jarvis_test.txt')
+        mock_file.write.assert_called_once_with("Test content")
+
+    @patch('pathlib.Path.rglob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_detect_duplicate_content_no_duplicates(self, mock_file, mock_rglob):
+        # Setup mock files
+        mock_rglob.return_value = [Path('file1.txt'), Path('file2.txt')]
+        mock_file.return_value.__enter__.return_value.read.side_effect = [
+            b'content1',
+            b'content2'
+        ]
+        
+        # Test duplicate detection
+        result = detect_duplicate_content()
+        
+        # Verify no duplicates found
+        self.assertEqual(result, {})
+
+    @patch('pathlib.Path.rglob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_detect_duplicate_content_with_duplicates(self, mock_file, mock_rglob):
+        # Setup mock files with duplicate content
+        mock_rglob.return_value = [
+            Path('file1.txt'),
+            Path('file2.txt'),
+            Path('file3.txt')
+        ]
+        mock_file.return_value.__enter__.return_value.read.side_effect = [
+            b'duplicate content',
+            b'duplicate content',
+            b'unique content'
+        ]
+        
+        # Test duplicate detection
+        result = detect_duplicate_content()
+        
+        # Verify duplicates were found
+        self.assertTrue(len(result) > 0)
+        
+        # Get the hash key for the duplicate content
+        hash_key = list(result.keys())[0]
+        
+        # Verify the duplicate files are identified
+        self.assertEqual(len(result[hash_key]), 2)
+        self.assertIn('file1.txt', result[hash_key][0])
+        self.assertIn('file2.txt', result[hash_key][1])
+
+    def test_save_temp_file_error(self):
+        with patch('tempfile.NamedTemporaryFile') as mock_temp:
+            # Setup mock to raise an exception
+            mock_temp.side_effect = Exception("Test error")
+            
+            # Test error handling
+            result = save_temp_file("Test content")
+            
+            # Verify None is returned on error
+            self.assertIsNone(result)
 
 if __name__ == '__main__':
     unittest.main()

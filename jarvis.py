@@ -160,7 +160,29 @@ def detect_duplicate_content(directory="."):
         speak(f"Error al buscar duplicados: {str(e)}")
         return {}
 
-# Ejemplo de ejecución
+def process_date_time_query(query):
+    """
+    Procesa consultas relacionadas con fecha y hora
+    """
+    if 'hora' in query.lower():
+        current_time = datetime.datetime.now().strftime("%H:%M")
+        speak(f"La hora actual es {current_time}")
+    elif 'fecha' in query.lower():
+        date = datetime.datetime.now().strftime("%d/%m/%Y")
+        speak(f"La fecha de hoy es {date}")
+
+def process_date_time_query_duplicate(query):
+    """
+    Duplicado intencional para pruebas de Sonar
+    """
+    if 'hora' in query.lower():
+        current_time = datetime.datetime.now().strftime("%H:%M")
+        speak(f"La hora actual es {current_time}")
+    elif 'fecha' in query.lower():
+        date = datetime.datetime.now().strftime("%d/%m/%Y")
+        speak(f"La fecha de hoy es {date}")
+
+# Modificar el main para usar las funciones duplicadas
 if __name__ == "__main__":
     greet_user()
     
@@ -173,12 +195,9 @@ if __name__ == "__main__":
         # Procesar la consulta del usuario
         if 'hola' in query.lower():
             speak("Hola, ¿en qué puedo ayudarte?")
-        elif 'hora' in query.lower():
-            current_time = datetime.datetime.now().strftime("%H:%M")
-            speak(f"La hora actual es {current_time}")
-        elif 'fecha' in query.lower():
-            date = datetime.datetime.now().strftime("%d/%m/%Y")
-            speak(f"La fecha de hoy es {date}")
+        elif 'hora' in query.lower() or 'fecha' in query.lower():
+            process_date_time_query(query)  # Primera función
+            process_date_time_query_duplicate(query)  # Función duplicada
         elif 'guardar nota' in query.lower():
             speak("¿Qué contenido quieres guardar?")
             content = take_user_input()
